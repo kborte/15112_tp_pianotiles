@@ -1,0 +1,145 @@
+Project Proposal
+
+Project Description
+Name: Piano Tiles: a new realm
+Description: a casual rhythm-based game that requires users
+to press tiles on the board with 3 lanes in synchrony to 
+the background music.
+
+Apart from the usual tiles, there will be two types of 
+obstacle tiles implemented: "bomb" tiles (the ones that
+appear on the board but are not supposed to be pressed) and
+"extra shield" tiles (the ones that require multiple presses
+to disappear).
+
+Valid moves will remove usual tiles, decrement the shield of
+the "extra shield" tiles by 1, and increase the current 
+score. Invalid moves such as a press at a lane with no tile
+or a press at a "bomb" tile will result in loss. Failure to
+remove the tiles until they reach the edge of the screen
+will also result in loss.
+
+There will be two modes available: classic and infinite
+challenge. In the former, melodies are arranged according
+to their level of difficulty and succesful completion of
+one unlocks the next, harder to play, melody. In the latter,
+the melody goes on until the user loses. Users can choose to
+play alone to set new personal records, or play with friends
+and win over one another.
+
+Competitive Analysis
+Piano Tiles 2, a game for mobile phones, follows a very similar
+idea. It offers a wide range of melodies in varying difficulty 
+levels, but it does not have a multiplayer "battle" mode.
+It also uses slightly different mechanics based on taps and 
+slides on a sensor display instead of key presses.
+
+Magic Tiles 3, on the other hand, offers the multiplayer mode on
+top of the functionality of Piano Tiles 2.
+
+
+Structural Plan
+- main.py - allows to choose the game mode and view statistics
+|
+| - drawMenu(app) - provides the menu to choose the game mode
+| and view statistics
+| - onMousePress(app, mouseX, mouseY) - identifies the choices
+| made by the user
+| - viewStatistics(app)
+| - onAppStart(app)
+| - redrawAll(app)
+|
+- mechanics.py - provides the basic game mechanics
+|
+| 1. drawing methods
+|
+| - drawCell(app, row, col) - draws a cell with a color according
+| to its type
+| - drawBoard(app) - draws the board. calls drawCell(app)
+| - drawGameOver(app) - draws the game over view with the current
+| score and the record
+| - redrawAll(app) - provides the view of the game. calls 
+| drawBoard(app), drawGameOver(app)
+|
+| 2. controllers
+|
+| - onAppStart(app) - sets the starting variables, such as the ones
+| needed to set a layout.
+| - onStep(app) - provides the movement of the board from the top of
+| the screen to the bottom and checks if the board has reached the
+| edge of the screen
+| - onKeyPress(app, key) - checks the validity of the moves made by
+| the user and modifies the board accordingly. If the currentRow has
+| no tiles left, deletes it. Also is used to restart the game
+| - onMousePress(app, mouseX, mouseY) - restarts the game
+|
+| 3. helper functions
+| - getBeats(app, melody) - analyzes the sounds in the melody to 
+| synchronize the tiles accordingly
+| - restart(app) - restarts the game, setting the variables to
+| default values
+| - loadNewRow(app) - adds a new row to the board. calls 
+| getBeats(app, melody)
+|
+- utils.py
+|
+| - button class
+| --- init(self, label, x, y, width, height, functionAtPress) - 
+| initializes and draws a button with a certain function that
+| should be called when a button is pressed
+| --- onButtonPress(self, onMousePress) - an event listener for
+| button press that calls a functionAtPress
+| 
+| - player class
+| --- init(self, lost, scores, board) - initializes a player in a
+| multiplayer mode
+
+Algorithmic Plan
+Algorithm for the main game mechanics:
+1. Starting the game: loading the board and starting the music
+2. Tiles move from the top of the screen towards the bottom,
+and new rows keep generating as the board moves.
+3. Setting the current row to the first row of the board
+4. If a user makes a move, checking if it's valid (there is 
+either a usual tile or "extra-press" tile in the lane
+corresponding to the key pressed). "a" or "left" - leftmost
+lane; "w" or "up" - middle lane; and "d" or "right" - 
+rightmost lane.
+5. If the move is valid, removing a usual tile or decrementing
+the number of key presses required for the "extra-press" tile
+and increasing the current score. Otherwise, the user loses.
+6. Checking if the current row became empty. If it did,
+removing it from the board and setting current row as the new
+0th row.
+7. If the current lane has reached the bottom of the screen and
+still has tiles left, the user loses.
+8. When the game ends, comparing the current score to the
+previous maximum score stored in a local file and if it's 
+greater, storing it as a maximum score.
+9. If the current score is the new maximum, displaying the "new
+record" message
+10. Displaying the game over message
+
+Timeline Plan
+11/14/2023 - Implement basic game mechanics and main menu
+11/17/2023 - Implement a strategy for melody-tiles 
+synchronization
+11/20/2023 - Add 7 levels for the classic mode of the game
+11/22/2023 - Implement sockets and data transmittion between
+devices in local network
+11/24/2023 - Create and refine the view for the multiplayer mode
+11/30/2023 - 
+
+Version Control Plan
+I will be using gitHub in order to back up my documentation and
+code. I will use the basic commands such as git init, git add,
+git add, git commit, and git push to upload my progress to the
+private repository. I will make sure to push the updates
+regularly in order to prevent the loss of progress and do so
+with extensive comments in commits.
+
+[ADD AN IMAGE]
+
+Module List
+cmu graphics for building the user interface of the game
+sockets for implementing the multiplayer battle mode
