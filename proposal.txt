@@ -138,7 +138,7 @@ private repository. I will make sure to push the updates
 regularly in order to prevent the loss of progress and do so
 with extensive comments in commits.
 
-[ADD AN IMAGE]
+github repository link: https://github.com/kborte/15112_tp_pianotiles
 
 Module List
 cmu graphics for building the user interface of the game
