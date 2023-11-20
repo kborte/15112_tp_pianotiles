@@ -142,4 +142,12 @@ with extensive comments in commits.
 
 Module List
 cmu graphics for building the user interface of the game
-sockets for implementing the multiplayer battle mode
+link: https://academy.cs.cmu.edu/desktop
+
+socket for implementing the multiplayer battle mode
+link: https://docs.python.org/3/library/socket.html#module-socket
+(standard library)
+
+random for random tiles generation
+link: https://docs.python.org/3/library/random.html
+(standard library)
