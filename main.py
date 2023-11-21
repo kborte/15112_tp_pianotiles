@@ -50,10 +50,17 @@ class Button():
         
     def press(self):
         if self.onPress != None:
-            if self.navigateTo != None:
-                self.onPress(self.app, self.navigateTo)
+            if type(self.onPress) == list:
+                for func in self.onPress:
+                    if func == changeMode and self.navigateTo != None:
+                        func(self.app, self.navigateTo)
+                    else:
+                        func(self.app)
             else:
-                self.onPress(self.app)
+                if self.navigateTo != None:
+                    self.onPress(self.app, self.navigateTo)
+                else:
+                    self.onPress(self.app)
 
 def changeMode(app, newMode):
     if app.mode[:2] != ["infinite", "game"]:
@@ -68,12 +75,12 @@ def changeMode(app, newMode):
     app.mode = newMode
 
     if app.mode[:2] != ["infinite", "game"]:
+        setClassicGameVariables(app)
         if app.buttons.get(f"{app.mode[0]}-{app.mode[1]}") != None:
             for button in app.buttons[f"{app.mode[0]}-{app.mode[1]}"].values():
                 button.display = True
     else:
         if app.mode[2] == "solo":
-            print("solo")
             setInfiniteSoloGameVariables(app)
         elif app.mode[2] == "multiplayer":
             setInfiniteMultiplayerGameVariables(app)
@@ -85,39 +92,52 @@ def loadNewRowRandom(app):
     newRow = rd.choices([-1, 0, 1, 2, 3, 4], 
                             weights = [1, 8, 6, 1, 1, 1], k = 3)
     
-    while newRow == [0, 0, 0]:
+    while newRow == [0, 0, 0] or newRow == [-1, -1, 1]:
         newRow = rd.choices([-1, 0, 1, 2, 3, 4],
                        weights = [1, 8, 6, 1, 1, 1], k = 3)
     app.board.append(newRow)
 
-def drawCell(app, row, col):
-    # setting the color of the cell according to its type
+def drawCell(app, row, col, rowHeight = None):
     colors = ["blue", "green", "yellow", "orange"]
     if app.board[row][col] == -1:
         color = "red"
     else:
         color = colors[app.board[row][col] - 1]
 
-    x = app.margin + app.cellSize * col
-    y = app.startingHeight - app.cellSize * (row + 1)
-    drawRect(x, y,
+    if rowHeight != None:
+        x = app.margin + app.cellSize * col
+        y = app.startingHeight - app.cellSize * (row + 1)
+        drawRect(x, y,
+                    app.cellSize,
+                    rowHeight,
+                    fill = color)
+    else:
+        x = app.margin + app.cellSize * col
+        y = app.startingHeight - app.cellSize * (row + 1)
+        drawRect(x, y,
                     app.cellSize,
                     app.cellSize,
                     fill = color)
     
-def drawBoard(app):
+def drawInfiniteBoard(app):
     if hasattr(app, "board"):
         for row in range(len(app.board)):
             for col in range(len(app.board[0])):
                 if app.board[row][col] != 0:
                     drawCell(app, row, col)
 
+def drawClassicBoard(app):
+    if hasattr(app, "board"):
+        for row in range(len(app.board)):
+            for col in range(len(app.board[0])):
+                if app.board[row][col] != 0:
+                    drawCell(app, row, col, app.rowHeights[row])
+
 def setInfiniteSoloGameVariables(app):
     app.score = 0
     app.stepsPerSecond = 30
     app.stepsMade = 0
     app.width, app.height = 360, 560
-    app.background = "white"
     app.margin = 60
     app.cellSize = (app.width - app.margin * 2) // 3
     app.background = "white"
@@ -131,12 +151,41 @@ def setInfiniteSoloGameVariables(app):
     app.startingHeight = app.margin + app.cellSize * len(app.board)
     app.paused = False
 
-def giveUp(app):
-    app.isGameOver == True
-    app.won  = False
+def setInfiniteMultiplayerGameVariables(app):
+    pass
+
+def loadNewRowClassic(app):
+    newRow = [0, 0, 0]
+    newRow[random.randint(0, 2)] = 1
+    rowHeight = app.songBeats[app.beatsPassed]
+    app.board.append(newRow)
+    app.rowHeights.append(rowHeight)
+
+def setClassicGameVariables(app):
+    app.rowHeights = []
+    songBeatsFile = open("songbeats.json")
+    dataBeats = json.load(songBeatsFile)["songs"]
+    app.songBeats = dataBeats[app.mode[2]]["beats"]
+
+    app.score = 0
+    app.board = []
+    loadNewRowClassic(app)
+    loadNewRowClassic(app)
+    app.previousScore = app.classicLevels[app.mode[2]]["score"]
+    app.startingHeight = app.margin + app.cellSize * len(app.board)
+    app.paused = False
+    app.isGameOver = False
 
 def pauseGame(app):
-    app.paused = True
+    if hasattr(app, "pause") and app.pause == True:
+        for button in app.buttons["pause"].values():
+            button.display = False
+
+    app.paused = not app.paused
+
+    if hasattr(app, "paused") and app.paused == True:
+        for button in app.buttons["pause"].values():
+            button.display = True
 
 def setStarterMenuButtons(app):
     app.buttons["starter-menu"] = dict()
@@ -196,7 +245,41 @@ def setInfiniteSoloGameButtons(app):
 def setInfiniteMultiplayerGameButtons(app):
     app.buttons["infinite-game-multiplayer"] = dict()
     app.buttons["infinite-game-multiplayer"]["infinite-multiplayer-giveup"] = Button(app = app, label = "Give Up",
-                                onPress = giveUp)
+                                onPress = gameOver)
+    
+def setPauseButtons(app):
+    app.buttons["pause"] = dict()
+    app.buttons["pause"]["pause-continue"] = Button(app = app, label = "Continue",
+                                x = app.width / 2, y = app.height / 2 - 20,
+                                onPress = pauseGame)
+    app.buttons["pause"]["pause-restart"] = Button(app = app, label = "Restart",
+                                x = app.width / 2, y = app.height / 2 + 50,
+                                onPress = [fromPause, restart])
+    app.buttons["pause"]["pause-giveup"] = Button(app = app, label = "Give Up",
+                                x = app.width / 2, y = app.height / 2 + 120,
+                                onPress = [fromPause, gameOver])
+    app.buttons["pause"]["pause-menu"] = Button(app = app, label = "Back to Menu",
+                                x = app.width / 2, y = app.height / 2 + 190,
+                                onPress = [fromPause, changeMode], navigateTo = [app.mode[0]] + ["menu"])
+    
+def setGameOverButtons(app):
+    app.buttons["gameover"] = dict()
+    app.buttons["gameover"]["gameover-restart"] = Button(app = app, label = "Restart",
+                                x = app.width / 2, y = app.height / 2 + 50,
+                                onPress = [fromGameOver, restart])
+    app.buttons["gameover"]["gameover-menu"] = Button(app = app, label = "Back to Menu",
+                                x = app.width / 2, y = app.height / 2 + 120,
+                                onPress = [fromGameOver, changeMode], navigateTo = [app.mode[0]] + ["menu"])
+    
+def fromGameOver(app):
+    app.isGameOver = False
+    for button in app.buttons["gameover"].values():
+        button.display = False
+
+def fromPause(app):
+    app.paused = False
+    for button in app.buttons["pause"].values():
+        button.display = False
 
 def setInfiniteGameButtons(app):
     setInfiniteSoloGameButtons(app)
@@ -210,14 +293,15 @@ def setButtons(app):
     setClassicGameButtons(app)
     setInfiniteMenuButtons(app)
     setInfiniteGameButtons(app)
+    setPauseButtons(app)
+    setGameOverButtons(app)
     app.buttons["instructionsButton"] = Button(app = app, label = "Game Rules",
                                                x = app.width - app.margin - app.buttonsWidth / 2,
                                                y = app.height - app.margin - app.buttonsHeight / 2,
                                                onPress = changeMode, navigateTo = app.mode + ["instructions"])
 
 def onAppStart(app):
-    app.background = "red"
-    print(app.background)
+    app.background = "white"
     app.mode = ["starter", "menu"]
     app.buttonsHeightStart = app.height / 2
     app.buttonsHeight = 50
@@ -234,47 +318,54 @@ def onAppStart(app):
 
 def onMousePress(app, mouseX, mouseY):
     modeStr = "-".join(app.mode)
+    if hasattr(app, "paused") and app.paused == True:
+        modeStr = "pause"
+    if hasattr(app, "isGameOver") and app.isGameOver == True:
+        modeStr = "gameover"
     for button in app.buttons[modeStr].values():
         bordersX = [button.x - button.width / 2, button.x + button.width / 2]
         bordersY = [button.y - button.height / 2, button.y + button.height / 2]
+        print(button.label)
         if (button.display and 
             bordersX[0] <= mouseX <= bordersX[1]
             and bordersY[0] <= mouseY <= bordersY[1]):
             button.press()
     
 def drawMenu(app):
-    if app.mode[0] == "starter":
-        app.buttons["starter-menu"]["starter-classic"].draw()
-        app.buttons["starter-menu"]["starter-infinite"].draw()
-    if app.mode[0] == "classic":
-        for button in app.buttons["classic-menu"].values():
-            button.draw()
-    if app.mode[0] == "infinite":
-        for button in app.buttons["infinite-menu"].values():
-            button.draw()
+    for button in app.buttons[f"{app.mode[0]}-menu"].values():
+        button.draw()
 
     app.buttons["instructionsButton"].draw()
 
+def drawClassicGameOver(app):
+    drawLabel(f"Level {app.mode[2]}", app.width / 2, app.height / 2 - 100, fill = "red")
+    drawLabel(f'Your score is {app.score}', app.width / 2, app.margin / 2, fill = "red")
+
+def drawInfiniteSoloGameOver(app):
+    if app.newrecord == True:
+        drawLabel("New Record!", app.width / 2, app.height / 2 - 100, fill = "red")
+    drawLabel(f'Your score is {app.score}', app.width / 2, app.margin / 2, fill = "red")
+    for button in app.buttons["gameover"].values():
+        button.draw()
+
+def drawInfiniteMultiplayerGameOver(app):
+    drawLabel(f'Your score is {app.score}', app.width / 2, app.width / 2, fill = "red")
+    drawLabel(f"Opponent's score is {app.opponentScore}", app.width / 2, 
+              app.height / 2 + 50, fill = "red")
+    if app.won == True:
+        drawLabel("You won", app.width / 2, app.margin / 2, fill = "red")
+    else:
+        drawLabel("You lost", app.width / 2, app.margin / 2, fill = "red")
+
 def drawGameOver(app):
+    drawLabel("Game Over", app.width / 2, app.height / 2 - 150, fill = "red")
     if app.mode[0] == "classic":
-        drawLabel(f"Level {app.mode[2]}", app.width / 2, app.height / 2 - 100, fill = "red")
-        drawLabel("Game Over", app.width / 2, app.height / 2 - 50, fill = "red")
-        drawLabel(f'Your score is {app.score}', app.width / 2, app.margin / 2, fill = "red")
+        drawClassicGameOver(app)
     elif app.mode[0] == "infinite":
         if app.mode[2] == "solo":
-            if app.newrecord == True:
-                drawLabel("New Record!", app.width / 2, app.height / 2 - 100, fill = "red")
-            drawLabel("Game Over", app.width / 2, app.height / 2 - 50, fill = "red")
-            drawLabel(f'Your score is {app.score}', app.width / 2, app.margin / 2, fill = "red")
+            drawInfiniteSoloGameOver(app)
         elif app.mode[2] == "multiplayer":
-            drawLabel("Game Over", app.width / 2, app.height / 2 - 50, fill = "red")
-            drawLabel(f'Your score is {app.score}', app.width / 2, app.margin / 2, fill = "red")
-            drawLabel("Opponent's score is", app.width / 2, app.height / 2 + 50, fill = "red")
-            drawLabel(f'{app.opponentScore}', app.width / 2, app.height / 2 + 100, fill = "red")
-            if app.won == True:
-                drawLabel("You won", app.width / 2, app.height / 2 + 150, fill = "red")
-            else:
-                drawLabel("You lost", app.width / 2, app.height / 2 + 150, fill = "red")
+            drawInfiniteMultiplayerGameOver(app)
 
 def onClassicGameStep(app):
     pass
@@ -293,10 +384,13 @@ def onInfiniteMultiplayerGameStep(app):
     pass
 
 def classicGameOver(app):
-    pass
+    if app.score >= app.classicLevels[app.mode[2]]["score"]:
+        app.classicLevels[app.mode[2]]["score"] = app.score
+        classicLevelsFile = open("classiclevels.json", "w")
+        json.dump({"songs": app.classicLevels}, classicLevelsFile)
+        classicLevelsFile.close()
 
 def infiniteSoloGameOver(app):
-    # print(app.record, app.score, app.record < app.score)
     if app.record < app.score:
         app.recordFile = open("record.txt", "w")
         app.recordFile.write(str(app.score))
@@ -305,10 +399,13 @@ def infiniteSoloGameOver(app):
         app.newrecord = True
 
 def infiniteMultiplayerGameOver(app):
-    pass
+    app.won  = False
 
 def gameOver(app):
     app.isGameOver = True
+    for button in app.buttons["gameover"].values():
+        button.display = True
+
     if app.mode[0] == "classic":
         classicGameOver(app)
     elif app.mode[0] == "infinite":
@@ -324,16 +421,24 @@ def onKeyPress(app, key):
         if key == "r":
             restart(app)
     else:
-        if app.board[0][keyLanes[key]] >= 1:
-            app.board[0][keyLanes[key]] -= 1
-            app.score += 1
-        else:
-            gameOver(app)
-            app.isGameOver = True
+        if key == "space":
+            if sum(app.board[0]) < 0:
+                app.board.pop(0)
+                app.startingHeight -= app.cellSize
+            else:
+                gameOver(app)
+                app.isGameOver = True
+        elif keyLanes.get(key) != None:    
+            if app.board[0][keyLanes[key]] >= 1:
+                app.board[0][keyLanes[key]] -= 1
+                app.score += 1
+            else:
+                gameOver(app)
+                app.isGameOver = True
 
-        if app.board[0] == [0, 0, 0]:
-            app.board.pop(0)
-            app.startingHeight -= app.cellSize
+            if app.board[0] == [0, 0, 0]:
+                app.board.pop(0)
+                app.startingHeight -= app.cellSize
 
 def onStep(app):
     if (app.mode[1] == "game" and app.paused == False 
@@ -346,6 +451,31 @@ def onStep(app):
             if app.mode[2] == "multiplayer":
                 onInfiniteMultiplayerGameStep(app)
 
+def drawPause(app):
+    drawLabel("Paused", app.width / 2, app.height / 2, fill = "red")
+    drawLabel("Press any key to continue", app.width / 2, app.height / 2 - 160, fill = "red")
+    drawLabel(f"Your score is {app.score}", app.width / 2, app.height / 2 - 90, fill = "red")
+    for button in app.buttons["pause"].values():
+        button.draw()
+
+def restart(app):
+    if app.mode[:2] == ["classic", "game"]:
+        setClassicGameVariables(app)
+    elif app.mode == ["infinite", "game", "solo"]:
+        setInfiniteSoloGameVariables(app)
+    elif app.mode == ["infinite", "game", "multiplayer"]:
+        setInfiniteMultiplayerGameVariables(app)
+
+def drawInfiniteSoloGame(app):
+    if hasattr(app, "paused") and app.paused == True:
+        drawPause(app)
+    else:
+        drawBoard(app)
+        drawRect(0, 0, app.width, app.margin, fill = "white")
+        for button in app.buttons["infinite-game-solo"].values():
+            button.draw()
+    drawLabel(f'Your score is {app.score}', app.width / 2, app.height - app.margin / 2, fill = "red")
+
 def drawGame(app):
     if hasattr(app, "isGameOver") == False or app.isGameOver == False:
         if app.mode[0] == "classic":
@@ -353,9 +483,7 @@ def drawGame(app):
                 button.draw()
         elif app.mode[0] == "infinite":
             if app.mode[2] == "solo":
-                drawBoard(app)
-                for button in app.buttons["infinite-game-solo"].values():
-                    button.draw()
+                drawInfiniteSoloGame(app)
             elif app.mode[2] == "multiplayer":
                 for button in app.buttons["infinite-game-multiplayer"].values():
                    button.draw()

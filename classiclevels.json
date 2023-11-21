@@ -1,0 +1,13 @@
+{"songs":[
+    {
+        "id": "lvl1",
+        "label": "Level 1",
+        "song": "Ludwig vaan Beethoven",
+        "artist": "Fur Elise",
+        "difficulty": "easy",
+        "completed": false,
+        "stars": 0,
+        "score": 0
+    }
+]
+}

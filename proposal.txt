@@ -128,7 +128,7 @@ synchronization
 11/22/2023 - Implement sockets and data transmittion between
 devices in local network
 11/24/2023 - Create and refine the view for the multiplayer mode
-11/30/2023 - 
+11/30/2023 - Debug and present the final game
 
 Version Control Plan
 I will be using gitHub in order to back up my documentation and
@@ -151,3 +151,41 @@ link: https://docs.python.org/3/library/socket.html#module-socket
 random for random tiles generation
 link: https://docs.python.org/3/library/random.html
 (standard library)
+
+librosa for sound processing and audio-tiles sync
+link: https://librosa.org/doc/latest/index.html
+
+TP2 update
+- added links to the modules in the module list
+- added "random" module
+- added "librosa" library
+
+Structural Plan
+- main.py - the game file
+|
+| - drawMenu
+| - drawGame
+| - drawGameOver
+| - drawGameInstructions
+| - setButtons
+| - changeMode
+| - onStep
+| - onKeyPress
+|
+- classiclevels.json - the file with classic mode game levels information
+|
+- record.txt - the file with the infinite solo mode game maximum score
+|
+- songs
+| - furelise.mp3
+
+Algorithmic Plan
+Algorithmic plan for syncing the audio to the tiles displayed on the screen:
+1. Splitting the song into audioframes for each beat
+2. Converting the audioframes into a list timestamps
+3. Saving it as a separate file
+4. Using this file to retrieve the height of the current row
+5. Assigning a cell from a random row in a lane the value of 1 (for 1 press
+to remomve the tile)
+6. Drawing a board with dynamically changing rowHeight depending on the length
+of the audioframe
